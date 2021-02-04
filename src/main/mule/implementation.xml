@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:salesforce-composite="http://www.mulesoft.org/schema/mule/salesforce-composite"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce-composite http://www.mulesoft.org/schema/mule/salesforce-composite/current/mule-salesforce-composite.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<flow name="compositeSObjectTreeCreate" doc:id="f41cdcd9-6e60-499c-adc3-6d0c3d0f51ce" >
+		<ee:transform doc:name="Map Data to SObjectTree" doc:id="e71041c2-78f1-48fe-9b73-f62fd0e62d83">
+			<ee:message>
+				<ee:set-payload resource="dwl/account-composite.dwl" />
+			</ee:message>
+		</ee:transform>
+		<salesforce-composite:create-sobject-tree doc:name="Create sobject tree" doc:id="45d40d6b-3154-4ea7-af5b-a54ce008a1b5" config-ref="Salesforce_Composite_Config" type="Account" >
+			<reconnect />
+		</salesforce-composite:create-sobject-tree>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="Catch Validation Errors from SFDC" doc:id="b9fd5deb-2f7b-42e1-9ce7-c8ee7c0f0cc6" type="SALESFORCE-COMPOSITE:UNKNOWN, SALESFORCE-COMPOSITE:VALIDATION">
+				<logger level="INFO" doc:name="Logger" doc:id="34289a35-882a-4b79-baf2-851050a355ce" message="Salesforce Exception Encountered"/>
+				<set-variable value="#[error.description]" doc:name="Set Variable" doc:id="7a2967ec-c396-456e-a9cf-c012335eea91" variableName="errorDescription"/>
+				<set-variable value="400" doc:name="Set 400" doc:id="6a983903-64ca-427c-ad2e-e7a266f757f5" variableName="httpStatus"/>
+			</on-error-continue>
+		</error-handler> 
+	</flow>
+	<flow name="ExecuteCompositeRequest" doc:id="ff17c134-8297-4cf3-9595-f8d453f84d86" >
+		<http:listener doc:name="Listener" doc:id="058fc56b-440e-4f71-a1a5-b18a1b2e793e" config-ref="sfdc-system-api-httpListenerConfig" path="/compositRequest" allowedMethods="POST"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2e1e7f5d-80a8-4b45-b970-dbabc3f0a8d2" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="be376de4-7af4-499d-93ef-857e75483359">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce-composite:execute-composite-request doc:name="Execute composite request" doc:id="0d58320f-3614-4936-81e4-d030fbbcbb24" config-ref="Salesforce_Composite_Config" />
+		<logger level="INFO" doc:name="Logger" doc:id="243ac6c9-58c7-4105-8a51-fc85e53e0ed2" message="#[payload]" />
+		<ee:transform doc:name="Transform Message" doc:id="a7d35b56-5d08-4bae-ad2a-24671f4f0242" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="4bee6eb7-f4d4-4f46-883f-43c00d467ef0" message="#[payload]"/>
+	</flow>
+	<flow name="object-collection" doc:id="3525617f-e45b-4230-b3d8-9161f556efb5" >
+		<http:listener doc:name="Listener" doc:id="99bd2c40-7903-48e5-848c-9e14f333ff10" config-ref="sfdc-system-api-httpListenerConfig" path="/objectCollection"/>
+		<logger level="INFO" doc:name="Logger" doc:id="d81929a3-f3e9-40cc-964c-1c926f1458a2" />
+		<salesforce-composite:get-sobject-collections doc:name="Get sobject collections" doc:id="a4dd2881-7445-410b-8d3e-6e5c71257ed7" config-ref="Salesforce_Composite_Config" type="Account">
+			<salesforce-composite:ids >
+				<salesforce-composite:id value='#[attributes.queryParams."ids"]' />
+			</salesforce-composite:ids>
+			<salesforce-composite:fields >
+				<salesforce-composite:field value="Phone" />
+				<salesforce-composite:field value="name" />
+			</salesforce-composite:fields>
+		</salesforce-composite:get-sobject-collections>
+		<ee:transform doc:name="Transform Message" doc:id="75f7312a-e7c2-406a-99aa-5575aa752de5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="153d9404-b722-4dd6-a2fb-d8a12188d37b" message="#[payload]"/>
+	</flow>
+
+</mule>
