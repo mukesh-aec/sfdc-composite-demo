@@ -1,0 +1,94 @@
+-------------------Create Sobject Tree---------------------
+Post:http://localhost:8091/api/accounts
+{
+    "phone": "303-123-8568",
+    "website": "www.abc.com",
+    "numberOfEmployees": "20",
+    "name": "Parent Account",
+    "active": true,
+    "sla": "Gold",
+    "accountNumber": "AC0020",
+    "contacts": [
+        {
+            "name": "ParentContact1 PL",
+            "email": "ParentContact1@abc.com",
+            "phone": "303-123-8569",
+            "title": "President",
+            "department": "Sales"
+        },
+        {
+            "name": "ParentContact2 PL2",
+            "email": "ParentContact2@abc.com",
+            "phone": "303-123-8570",
+            "title": "Vice President",
+            "department": "Operations"
+        }
+    ],
+    "childAccounts": [
+        {
+            "phone": "425-123-2342",
+            "website": "www.CodeCo.com",
+            "numberOfEmployees": "10",
+            "name": "Child Account",
+            "LastName": "child",
+            "active": true,
+            "sla": "Gold",
+            "accountNumber": "CC0040",
+            "contacts": [
+                {
+                    "name": "ChildContact1 CL",
+                    "email": "ChildContact1@CodeCo.com",
+                    "phone": "415-123-8569",
+                    "title": "Lead Architect",
+                    "department": "Engineering"
+                },
+                {
+                    "name": "ChildContact2 CL",
+                    "email": "ChildContact2@CodeCo.com",
+                    "phone": "415-123-8570",
+                    "title": "Head of Marketing",
+                    "department": "Marketing"
+                }
+            ]
+        }
+    ]
+}
+----------------------------------------------------------------
+Composite request:
+http://localhost:8091/compositRequest
+{
+    "allOrNone": true,
+    "compositeRequest": [
+        {
+            "method": "GET",
+            "url": "/services/data/v50.0/sobjects/Account/describe",
+            "httpHeaders": {
+                "If-Modified-Since": "Tue, 31 May 2016 18:00:00 GMT"
+            },
+            "referenceId": "AccountInfo"
+        },
+        {
+            "method": "POST",
+            "url": "/services/data/v50.0/sobjects/Account",
+            "referenceId": "refNewAccount",
+            "body": {
+                "Name": "Meetup demo",
+                "acctNumber__c": "demo12346"
+            }
+        },
+        {
+            "method": "GET",
+            "url": "/services/data/v50.0/sobjects/Account/@{refNewAccount.id}",
+            "referenceId": "refNewAccountFields"
+        },
+         {
+            "method": "PATCH",
+            "url": "/services/data/v50.0/sobjects/Account/acctNumber__c/ID12345",
+            "referenceId": "refUpdatedAccount",
+            "body": {
+                "Name": "Pune meetupdemo"
+            }
+        }
+       
+    ]
+}
